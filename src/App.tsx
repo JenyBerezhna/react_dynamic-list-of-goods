@@ -1,27 +1,79 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import './App.scss';
 import { GoodsList } from './GoodsList';
+import { getAll, get5First, getRedGoods } from './api/goods';
+import { Good } from './types/Good';
 
-// import { getAll, get5First, getRed } from './api/goods';
-// or
-// import * as goodsAPI from './api/goods';
+export const App: React.FC = () => {
+  const [goods, setGoods] = useState<Good[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string>('');
 
-export const App: React.FC = () => (
-  <div className="App">
-    <h1>Dynamic list of Goods</h1>
+  const reload = () => {
+    setLoading(true);
+    setErrorMessage('');
+    getAll()
+      .then(setGoods)
+      .catch(() => setErrorMessage('Failed to load goods'))
+      .finally(() => setLoading(false));
+  };
 
-    <button type="button" data-cy="all-button">
-      Load all goods
-    </button>
+  useEffect(() => {
+    getAll().then(setGoods);
+  }, []);
 
-    <button type="button" data-cy="first-five-button">
-      Load 5 first goods
-    </button>
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      getAll()
+        .then(setGoods)
+        .catch(() => setErrorMessage('Failed to load goods'))
+        .finally(() => setLoading(false));
+    }, 5000);
 
-    <button type="button" data-cy="red-button">
-      Load red goods
-    </button>
+    return () => clearTimeout(timer);
+  }, []);
 
-    <GoodsList goods={[]} />
-  </div>
-);
+  const handleLoadAll = () => {
+    getAll().then(setGoods);
+  };
+
+  const handleLoadFirstFive = () => {
+    get5First().then(setGoods);
+  };
+
+  const handleLoadRedGoods = () => {
+    getRedGoods().then(setGoods);
+  };
+
+  return (
+    <div className="App">
+      <h1>Dynamic list of Goods</h1>
+
+      <button type="button" data-cy="all-button" onClick={handleLoadAll}>
+        Load all goods
+      </button>
+
+      <button
+        type="button"
+        data-cy="first-five-button"
+        onClick={handleLoadFirstFive}
+      >
+        Load 5 first goods
+      </button>
+
+      <button type="button" data-cy="red-button" onClick={handleLoadRedGoods}>
+        Load red goods
+      </button>
+
+      {loading && <p>Loading...</p>}
+      {errorMessage && (
+        <div className="notification is-danger">
+          <p>{errorMessage}</p>
+          <button onClick={reload}>Reload</button>
+        </div>
+      )}
+
+      <GoodsList goods={goods} />
+    </div>
+  );
+};
